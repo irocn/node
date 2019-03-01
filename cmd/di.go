@@ -113,6 +113,8 @@ type Dependencies struct {
 	ServicesManager       *service.Manager
 	ServiceRegistry       *service.Registry
 	ServiceSessionStorage *session.StorageMemory
+
+	MetricsSender *metrics.Sender
 }
 
 // Bootstrap initiates all container dependencies
@@ -280,6 +282,8 @@ func (di *Dependencies) bootstrapNodeComponents(nodeOptions node.Options) {
 		di.EventBus,
 	)
 
+	di.MetricsSender = metrics.CreateSender(nodeOptions.DisableMetrics, nodeOptions.MetricsAddress)
+
 	router := tequilapi.NewAPIRouter()
 	tequilapi_endpoints.AddRouteForStop(router, utils.SoftKiller(di.Shutdown))
 	tequilapi_endpoints.AddRoutesForIdentities(router, di.IdentityManager, di.SignerFactory)
@@ -292,9 +296,8 @@ func (di *Dependencies) bootstrapNodeComponents(nodeOptions node.Options) {
 	identity_registry.AddIdentityRegistrationEndpoint(router, di.IdentityRegistration, di.IdentityRegistry)
 
 	httpAPIServer := tequilapi.NewServer(nodeOptions.TequilapiAddress, nodeOptions.TequilapiPort, router, corsPolicy)
-	metricsSender := metrics.CreateSender(nodeOptions.DisableMetrics, nodeOptions.MetricsAddress)
 
-	di.Node = node.NewNode(di.ConnectionManager, httpAPIServer, di.LocationOriginal, metricsSender)
+	di.Node = node.NewNode(di.ConnectionManager, httpAPIServer, di.LocationOriginal, di.MetricsSender)
 }
 
 func newSessionManagerFactory(
