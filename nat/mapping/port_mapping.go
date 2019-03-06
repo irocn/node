@@ -23,7 +23,6 @@ import (
 
 	log "github.com/cihub/seelog"
 	portmap "github.com/ethereum/go-ethereum/p2p/nat"
-	"github.com/mysteriumnetwork/node/metrics"
 )
 
 const logPrefix = "[port mapping] "
@@ -33,8 +32,13 @@ const (
 	mapUpdateInterval = 15 * time.Minute
 )
 
+type metricsSender interface {
+	SendNATMappingSuccessEvent() error
+	SendNATMappingFailEvent(err error) error
+}
+
 // GetPortMappingFunc returns PortMapping function if service is behind NAT
-func GetPortMappingFunc(pubIP, outIP, protocol string, port int, description string, metricsSender *metrics.Sender) func() {
+func GetPortMappingFunc(pubIP, outIP, protocol string, port int, description string, metricsSender metricsSender) func() {
 	if pubIP != outIP {
 		return PortMapping(protocol, port, description, metricsSender)
 	}
@@ -43,7 +47,7 @@ func GetPortMappingFunc(pubIP, outIP, protocol string, port int, description str
 
 // PortMapping maps given port of given protocol from external IP on a gateway to local machine internal IP
 // 'name' denotes rule name added on a gateway.
-func PortMapping(protocol string, port int, name string, metricsSender *metrics.Sender) func() {
+func PortMapping(protocol string, port int, name string, metricsSender metricsSender) func() {
 	mapperQuit := make(chan struct{})
 	go mapPort(portmap.Any(),
 		mapperQuit,
@@ -58,7 +62,7 @@ func PortMapping(protocol string, port int, name string, metricsSender *metrics.
 
 // mapPort adds a port mapping on m and keeps it alive until c is closed.
 // This function is typically invoked in its own goroutine.
-func mapPort(m portmap.Interface, c chan struct{}, protocol string, extPort, intPort int, name string, metricsSender *metrics.Sender) {
+func mapPort(m portmap.Interface, c chan struct{}, protocol string, extPort, intPort int, name string, metricsSender metricsSender) {
 	defer func() {
 		log.Debug(logPrefix, "Deleting port mapping for port: ", extPort)
 
