@@ -287,6 +287,7 @@ func (di *Dependencies) bootstrapNodeComponents(nodeOptions node.Options) {
 	tequilapi_endpoints.AddRoutesForLocation(router, di.ConnectionManager, di.LocationDetector, di.LocationOriginal)
 	tequilapi_endpoints.AddRoutesForProposals(router, di.MysteriumAPI, di.MysteriumMorqaClient)
 	tequilapi_endpoints.AddRoutesForService(router, di.ServicesManager, serviceTypesRequestParser)
+	tequilapi_endpoints.AddRoutesForServiceSessions(router, di.ServiceSessionStorage)
 
 	identity_registry.AddIdentityRegistrationEndpoint(router, di.IdentityRegistration, di.IdentityRegistry)
 
